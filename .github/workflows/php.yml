@@ -9,21 +9,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: php:7.3-cli-alpine
     steps:
     - uses: actions/checkout@v2
 
-    - name: Validate composer.json and composer.lock
+    - name: Install composer
+      run: apk add -u curl; sh .github/composer.sh; mv composer.phar /usr/local/bin/composer; chmod +x /usr/local/bin/composer
+
+    - name: Validate composer.json
       run: composer validate
 
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v2
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-
-
     - name: Install dependencies
-      if: steps.composer-cache.outputs.cache-hit != 'true'
       run: composer install --prefer-dist --no-progress --no-suggest
+
+    - name: Run unit tests
+      run: vendor/bin/phpunit --testsuite "Unit tests"
+
+    - name: Run code style checks
+      run: vendor/bin/phpcs
+
+    - name: Run static analysis
+      run: vendor/bin/phpcs
